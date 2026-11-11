@@ -13,8 +13,8 @@ namespace Day111
 
         Font font;
         Image barHp, barCargo, barBat, progFill;
-        Text txtTime, txtBanner, txtTitleBlink, txtRetry, txtResTitle, txtResSub, txtResRows, txtRank, txtPause;
-        GameObject goTitle, goResult, goPause, goHud, goTouch;
+        Text txtTime, txtBanner, txtTitleBlink, txtRetry, txtResTitle, txtResSub, txtResRows, txtRank, txtPause, txtRotate;
+        GameObject goTitle, goResult, goPause, goHud, goTouch, goRotate;
         RectTransform stickBase, stickKnob, fireBtn;
         Image fireImg;
         readonly List<Text> warnPool = new List<Text>(), popPool = new List<Text>();
@@ -129,7 +129,13 @@ namespace Day111
             var pr = Txt(goPause.transform, "P2", 44, TextAnchor.MiddleCenter, Color.white); pr.text = "タップ / P で再開";
             Anchor(pr.rectTransform, new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -70), new Vector2(1200, 70));
 
-            ShowTitle(false); ShowResult(false); ShowPause(false); SetHudVisible(false);
+            // 横向きお願い（縦持ち中は最前面に表示してゲーム進行を止める）
+            goRotate = Panel("Rotate");
+            var rdim = Img(goRotate.transform, "Dim", Square, new Color(.03f, .05f, .12f, .92f)); Stretch(rdim.rectTransform);
+            txtRotate = Txt(goRotate.transform, "T1", 56, TextAnchor.MiddleCenter, Color.white); txtRotate.text = "画面を横にしてください\n\nこのゲームは横画面専用です";
+            Anchor(txtRotate.rectTransform, new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(900, 240));
+
+            ShowTitle(false); ShowResult(false); ShowPause(false); SetHudVisible(false); ShowRotate(false);
         }
 
         GameObject Panel(string name)
@@ -176,6 +182,7 @@ namespace Day111
         public void ShowTitle(bool v) { goTitle.SetActive(v); }
         public void ShowPause(bool v) { goPause.SetActive(v); }
         public void ShowResult(bool v) { goResult.SetActive(v); }
+        public void ShowRotate(bool v) { goRotate.SetActive(v); }
 
         public void SetResult(bool ok, string reason, string rows, string rank)
         {

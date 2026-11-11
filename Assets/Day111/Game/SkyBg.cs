@@ -11,6 +11,7 @@ namespace Day111
         SpriteRenderer[] lowD = new SpriteRenderer[7], lowS = new SpriteRenderer[7], hiD = new SpriteRenderer[4], hiS = new SpriteRenderer[4];
         SpriteRenderer[] birds = new SpriteRenderer[9];
         Sprite[] cloudD = new Sprite[3], cloudS = new Sprite[3], birdUp, birdDn;
+        ParticleSystem rain;
 
         static float R(float i, float k) { return Mathf.Abs(Mathf.Sin(i * 12.9898f + k * 78.233f) * 43758.5453f) % 1f; }
         static Color H(string h) { Color c; ColorUtility.TryParseHtmlString(h, out c); return c; }
@@ -28,6 +29,47 @@ namespace Day111
             for (int i = 0; i < 7; i++) { lowD[i] = Spr(cloudD[i % 3], -94); lowS[i] = Spr(cloudS[i % 3], -94); }
             birdUp = new[] { SpriteOf(BirdTex(true)) }; birdDn = new[] { SpriteOf(BirdTex(false)) };
             for (int i = 0; i < 9; i++) birds[i] = Spr(birdUp[0], -93);
+            rain = BuildRain();
+        }
+
+        // ハリケーン時の雨（カメラ正面のローカル空間で常時降らせ、emissionでstormに応じて強弱）
+        ParticleSystem BuildRain()
+        {
+            var go = new GameObject("Rain"); go.transform.SetParent(cam.transform, false);
+            go.transform.localPosition = new Vector3(0, 6, 16); go.transform.localRotation = Quaternion.identity;
+            var ps = go.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.startLifetime = 0.6f; main.startSpeed = 0f; main.startSize = 1f;
+            main.startColor = new Color(.82f, .88f, .95f, .55f);
+            main.maxParticles = 1200; main.gravityModifier = 0f; main.playOnAwake = true;
+            var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = new Vector3(34f, 1f, 18f);
+            var vel = ps.velocityOverLifetime; vel.enabled = true;
+            vel.x = new ParticleSystem.MinMaxCurve(-5f, -3f);
+            vel.y = new ParticleSystem.MinMaxCurve(-42f, -34f);
+            vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            var em = ps.emission; em.rateOverTime = 0f;
+            var sizeByLife = ps.sizeOverLifetime; // 使わない（棒状はStretched Billboardで表現）
+            sizeByLife.enabled = false;
+            var r = ps.GetComponent<ParticleSystemRenderer>();
+            r.renderMode = ParticleSystemRenderMode.Stretch; r.velocityScale = 0.12f; r.lengthScale = 2.2f;
+            var sh = Shader.Find("Legacy Shaders/Particles/Alpha Blended") ?? Shader.Find("Particles/Alpha Blended Premultiply") ?? Shader.Find("Sprites/Default");
+            var mat = new Material(sh); mat.mainTexture = RainTex();
+            r.sharedMaterial = mat;
+            ps.Play();
+            return ps;
+        }
+
+        static Texture2D RainTex()
+        {
+            int w = 8, h = 64; var t = Mk(w, h);
+            for (int y = 0; y < h; y++)
+            {
+                float u = y / (float)(h - 1), edge = Mathf.Min(u, 1f - u) * 2f;
+                float a = Mathf.Clamp01(edge) * .9f;
+                for (int x = 0; x < w; x++) t.SetPixel(x, y, new Color(1, 1, 1, a));
+            }
+            t.Apply(); return t;
         }
 
         Sprite SpriteOf(Texture2D t) { return Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(.5f, .5f), 100f); }
@@ -157,6 +199,13 @@ namespace Day111
                 bool up = Mathf.Sin(t * 9 + k * 2) > 0;
                 birds[k].sprite = up ? birdUp[0] : birdDn[0];
                 Place(birds[k], L(bx, by, vw, vh, 6), 24f * u * 1.0f); birds[k].color = bc;
+            }
+            // 雨：接近(storm~.45)から薄く、ハリケーン本体(storm→1)でザーザー降りに
+            if (rain != null)
+            {
+                var em = rain.emission;
+                float r01 = Mathf.Clamp01((storm - .12f) / .88f);
+                em.rateOverTime = r01 * 700f;
             }
         }
 

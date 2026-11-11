@@ -44,6 +44,8 @@ namespace Day111
 
         // 見た目
         Transform droneRoot, cargoRoot, ropeT, worldRoot, fxRoot;
+        Transform cargoTapeTop, cargoFlap; Transform[] cargoSpill; Renderer cargoBodyR; Material cargoBodyMat;
+        Vector3 cargoTapeBaseScale; float cargoDmLerp;
         Transform[] rotors = new Transform[4];
         Renderer led;
         GameObject pilot, receiver; Animator pilotAnim, recvAnim; string pilotState = "", recvState = "";
@@ -198,8 +200,8 @@ namespace Day111
             if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) tx += 1;
             if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W)) ty -= 1;
             if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) ty += 1;
-            kbx += (tx - kbx) * Mathf.Min(1f, dt * (tx != 0 ? 7f : 14f));
-            kby += (ty - kby) * Mathf.Min(1f, dt * (ty != 0 ? 7f : 14f));
+            kbx += (tx - kbx) * Mathf.Min(1f, dt * (tx != 0 ? 12f : 18f));
+            kby += (ty - kby) * Mathf.Min(1f, dt * (ty != 0 ? 12f : 18f));
             float gx = 0, gy = 0;
             try { gx = Input.GetAxisRaw("Horizontal"); gy = -Input.GetAxisRaw("Vertical"); } catch { }
             ReadTouch();
@@ -225,7 +227,7 @@ namespace Day111
                     float rad = Screen.height * .11f;
                     Vector2 v = (p - padOrigin) / rad;
                     if (v.magnitude > 1f) v = v.normalized;
-                    stick = new Vector2(Mathf.Abs(v.x) < .12f ? 0 : v.x, Mathf.Abs(v.y) < .12f ? 0 : -v.y);
+                    stick = new Vector2(Mathf.Abs(v.x) < .07f ? 0 : v.x, Mathf.Abs(v.y) < .07f ? 0 : -v.y);
                     padKnob = padOrigin + v * rad;
                 }
             }
@@ -246,6 +248,9 @@ namespace Day111
         void Update()
         {
             float dtf = Time.unscaledDeltaTime;
+            bool portrait = Screen.height > Screen.width;
+            hud.ShowRotate(portrait);
+            if (portrait) { ClearInput(); return; }
             bool tap = TapDown();
             if (Input.GetKeyDown(KeyCode.P) || Input.GetKeyDown(KeyCode.Escape) || Pad.PauseDown() || (mode != Mode.Title && mode != Mode.End && PauseTouch())) { if (mode == Mode.Play || mode == Mode.Intro) SetPause(!paused); }
             else if (paused && tap) SetPause(false);
@@ -391,7 +396,7 @@ namespace Day111
             d.bat -= (.62f + 1.1f * hi) * dt;
             if (d.bat <= 0) { d.bat = 0; Finish(false, "バッテリー切れ"); return; }
             d.prop = 1; d.cd = Mathf.Max(0, d.cd - dt); d.inv = Mathf.Max(0, d.inv - dt);
-            float sp = (atGoal ? .62f : 1f) * (d.stun > 0 ? .25f : 1f), tvx = dx * 205 * sp, tvy = dy * 190 * sp, k = 5.2f;
+            float sp = (atGoal ? .62f : 1f) * (d.stun > 0 ? .25f : 1f), tvx = dx * 205 * sp, tvy = dy * 190 * sp, k = 9f;
             float ovx = d.vx;
             d.vx += ((tvx - d.vx) * k + windX) * dt;
             d.vy += ((tvy - d.vy) * k + windY + upd) * dt;
@@ -440,7 +445,7 @@ namespace Day111
                 if (o.type == "cell")
                 {
                     var cr = new[] { o.x - 16, o.y - 14, 32, 28 };
-                    if (Hit(rd, cr) || Hit(rc, cr)) { o.alive = false; d.bat = Mathf.Min(100, d.bat + 7); Snd.Tick(); AddPop("+7 バッテリー", o.x, o.y - 24, new Color(.55f, 1f, .75f)); Puff(o.x, o.y, new Color(.55f, 1f, .75f), 10, 110, .5f, 6, false); }
+                    if (Hit(rd, cr) || Hit(rc, cr)) { o.alive = false; d.bat = Mathf.Min(100, d.bat + 21); Snd.Tick(); AddPop("+21 バッテリー", o.x, o.y - 24, new Color(.55f, 1f, .75f)); Puff(o.x, o.y, new Color(.55f, 1f, .75f), 10, 110, .5f, 6, false); }
                     continue;
                 }
                 if (o.type == "vent") { if (o.phs == "burst" && Hit(rd, new[] { o.x - 36, 40, 72, o.y - 40 })) upd = -1500; continue; }
@@ -737,11 +742,49 @@ namespace Day111
             Prims.Box(body, Mats.Get("DroneDark"), -16, -16, 3, 12, 3, 12f, false); Prims.Box(body, Mats.Get("DroneDark"), 16, -16, 3, 12, 3, 12f, false);
             // 荷物
             cargoRoot = new GameObject("Cargo").transform;
-            Prims.Box(cargoRoot, Mats.Get("Cargo"), 0, 0, 28, 24, 24, 0f);
+            var cargoBody = Prims.Box(cargoRoot, Mats.Get("Cargo"), 0, 0, 28, 24, 24, 0f);
+            cargoBodyR = cargoBody.GetComponent<Renderer>(); cargoBodyMat = new Material(Mats.Get("Cargo")); cargoBodyR.material = cargoBodyMat;
             Prims.Box(cargoRoot, Mats.Get("Tape"), 0, 0, 6, 25, 25, 0f, false);
-            Prims.Box(cargoRoot, Mats.Get("Tape"), 0, 12, 29, 2, 25, 0f, false);
+            cargoTapeTop = Prims.Box(cargoRoot, Mats.Get("Tape"), 0, 12, 29, 2, 25, 0f, false);
             Prims.Box(cargoRoot, Mats.Get("Metal"), 0, 14, 8, 5, 8, 0f, false);
+            // 破損表現：フタが開き中身がはみ出す（低HPのみ見える）
+            cargoFlap = Prims.Box(cargoRoot, Mats.Get("Cargo"), 0, 12, 26, 2, 22, 0f);
+            cargoTapeBaseScale = cargoTapeTop.localScale;
+            var spillMat = new Material(Mats.Get("Tape")); spillMat.color = new Color(.93f, .85f, .62f);
+            cargoSpill = new Transform[3];
+            cargoSpill[0] = Prims.Ball(cargoRoot, spillMat, -6, 15, 7, 7, 7, 0f);
+            cargoSpill[1] = Prims.Ball(cargoRoot, spillMat, 3, 18, 8, 8, 8, 0f);
+            cargoSpill[2] = Prims.Ball(cargoRoot, spillMat, 9, 14, 6, 6, 6, 0f);
+            foreach (var s in cargoSpill) s.gameObject.SetActive(false);
             ropeT = Prims.Rod(new GameObject("RopeRoot").transform, Mats.Get("Rope"), Vector2.zero, Vector2.up, 2.2f, 0f);
+        }
+
+        // 荷物の損傷表現：HTML版drawCargoBoxの3段階（汚れ→テープが剥がれる→フタが開き中身がはみ出す）を3Dで再現
+        static readonly Color CargoClean = new Color(.72f, .52f, .3f), CargoDirty = new Color(.33f, .24f, .14f);
+        void UpdateCargoDamage(float hp)
+        {
+            hp = Mathf.Clamp(hp, 0, 100);
+            float dm = (100f - hp) / 100f;
+            cargoDmLerp = Mathf.Lerp(cargoDmLerp, dm, Mathf.Min(1f, Time.unscaledDeltaTime * 6f));
+            if (cargoBodyMat) cargoBodyMat.color = Color.Lerp(CargoClean, CargoDirty, cargoDmLerp);
+            // テープが剥がれる（hp<72で徐々にめくれ・縮む）
+            float peel = Mathf.Clamp01((72f - hp) / 44f);
+            if (cargoTapeTop)
+            {
+                cargoTapeTop.localPosition = new Vector3(peel * 5f * PX, (12f + peel * 3f) * PX, -peel * 3f * PX);
+                cargoTapeTop.localRotation = Quaternion.Euler(peel * 50f, 0, peel * 14f);
+                cargoTapeTop.localScale = new Vector3(cargoTapeBaseScale.x * (1f - peel * .35f), cargoTapeBaseScale.y, cargoTapeBaseScale.z);
+            }
+            // フタが開き、中身がはみ出す（hp<38）
+            float open = Mathf.Clamp01((38f - hp) / 30f);
+            if (cargoFlap) { cargoFlap.localPosition = new Vector3(0, (12f + open * 6f) * PX, -open * 10f * PX); cargoFlap.localRotation = Quaternion.Euler(-open * 55f, 0, 0); }
+            if (cargoSpill != null)
+                for (int i = 0; i < cargoSpill.Length; i++)
+                {
+                    float u = Mathf.Clamp01(open * 1.4f - i * .18f);
+                    cargoSpill[i].gameObject.SetActive(u > .02f);
+                    cargoSpill[i].localScale = Vector3.one * u;
+                }
         }
 
         void BuildCharacters()
@@ -882,6 +925,7 @@ namespace Day111
             ropeT.parent.gameObject.SetActive(ropeOn);
             if (ropeOn) Prims.SetRod(ropeT, new Vector2(wx, G - d.sy), new Vector2(cx, G - cy + 12), 2.4f);
             cargoRoot.localScale = Vector3.one * (cflash > 0 ? 1f + Mathf.Sin(t * 60f) * .06f : 1f);
+            UpdateCargoDamage(cargoState == "ground" ? 100f : cargoHp);
             // キャラクター
             if (mode == Mode.Title) { SetAnim(true, "Idle"); SetAnim(false, "Idle"); }
             else if (mode == Mode.Play) SetAnim(false, atGoal ? "Wave" : "Idle");

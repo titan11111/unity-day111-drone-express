@@ -9,6 +9,7 @@ namespace Day111
         const float G = Cfg.GROUND;
         const float PX = Cfg.PX;
         const float FRONT = 24f;                 // 固体の前面を、機体の面より少し奥へ
+        const float BG_FRONT = 160f;             // 建物の前面：道路(z=±150)より奥に置き、車・機体のレーンと重ならせない
         static Texture2D winTex;
         static readonly Dictionary<string, Material> bmats = new Dictionary<string, Material>();
 
@@ -80,12 +81,12 @@ namespace Day111
 
         static void House(Ob o, Transform r)
         {
-            float bh = o.h * .62f, rh = o.h - bh; int c = o.col % 3; float d = 110, z = FRONT + d / 2;
+            float bh = o.h * .62f, rh = o.h - bh; int c = o.col % 3; float d = 110, z = BG_FRONT + d / 2;
             Prims.Box(r, M("Wall" + c), o.w / 2, bh / 2, o.w, bh, d, z);
             Prims.Roof(r, M("Roof" + c), o.w / 2, bh, o.w * 1.1f, rh, d + 20, z);
-            Prims.Box(r, M("Door"), o.w * .5f, 20, 22, 40, 3, FRONT - 1.5f, false);
-            Prims.Box(r, M("Glass"), o.w * .2f, bh * .6f, 24, 24, 3, FRONT - 1.5f, false);
-            Prims.Box(r, M("Glass"), o.w * .8f, bh * .6f, 24, 24, 3, FRONT - 1.5f, false);
+            Prims.Box(r, M("Door"), o.w * .5f, 20, 22, 40, 3, BG_FRONT - 1.5f, false);
+            Prims.Box(r, M("Glass"), o.w * .2f, bh * .6f, 24, 24, 3, BG_FRONT - 1.5f, false);
+            Prims.Box(r, M("Glass"), o.w * .8f, bh * .6f, 24, 24, 3, BG_FRONT - 1.5f, false);
             if (o.ch == 1 || o.i < 0 || o.w > 260)
             {
                 float cxh = o.w * .5f + o.w * .17f, roofY = bh + rh * (1f - (.17f * o.w) / (o.w * .55f));
@@ -96,17 +97,17 @@ namespace Day111
 
         static void Building(Ob o, Transform r)
         {
-            if (!o.fac) { Detail.Building(o, r, FRONT, o.i >= 0); return; }
-            float d = 120, z = FRONT + d / 2;
+            if (!o.fac) { Detail.Building(o, r, BG_FRONT, o.i >= 0); return; }
+            float d = 120, z = BG_FRONT + d / 2;
             Prims.Box(r, BuildingMat(o.w, o.h, o.fac), o.w / 2, o.h / 2, o.w, o.h, d, z);
             Prims.Box(r, M("MetalDark"), o.w / 2, o.h + 3, o.w + 8, 7, d + 8, z);
             if (o.ex != null)
                 foreach (var e in o.ex)
                 {
-                    Prims.Box(r, M("Metal"), e[0] + e[1] / 2, o.h + 7 + e[2] / 2, e[1], e[2], 50, FRONT + 50);
-                    Prims.Cyl(r, M("MetalDark"), e[0] + e[1] / 2, o.h + 7 + e[2] + 2, e[1] * .6f, 4, FRONT + 50);
+                    Prims.Box(r, M("Metal"), e[0] + e[1] / 2, o.h + 7 + e[2] / 2, e[1], e[2], 50, BG_FRONT + 50);
+                    Prims.Cyl(r, M("MetalDark"), e[0] + e[1] / 2, o.h + 7 + e[2] + 2, e[1] * .6f, 4, BG_FRONT + 50);
                 }
-            if (o.fac) { Prims.Cyl(r, M("Brick"), o.w * .85f, o.h + 40, 26, 80, FRONT + 90); }
+            if (o.fac) { Prims.Cyl(r, M("Brick"), o.w * .85f, o.h + 40, 26, 80, BG_FRONT + 90); }
         }
 
         static void Wire(Ob o, Transform r)
