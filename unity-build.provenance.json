@@ -6,8 +6,8 @@
   },
   "outcome": "success",
   "exitCode": 0,
-  "startedAt": "2026-11-11T08:41:30.251Z",
-  "endedAt": "2026-11-11T08:44:22.191Z",
+  "startedAt": "2026-11-11T10:10:15.660Z",
+  "endedAt": "2026-11-11T10:12:14.875Z",
   "editor": {
     "version": "6000.3.26f1",
     "changeset": "de8167e7440c",
@@ -16,7 +16,12 @@
   "build": {
     "target": "WebGL",
     "profile": "Assets/Settings/Build Profiles/WebGL.asset",
-    "logFile": "Logs/build-WebGL-1794386490087.log"
+    "logFile": "Logs/build-WebGL-1794391815352.log"
+  },
+  "source": {
+    "vcs": "git",
+    "revision": "f63c963e0c1f5f053f026f151189ae5775bf4858",
+    "dirty": true
   },
   "packages": {
     "source": "packages-lock.json",
