@@ -1,0 +1,18 @@
+# Unity regenerable files
+**/[Ll]ibrary/
+**/[Tt]emp/
+**/[Oo]bj/
+**/[Ll]ogs/
+**/[Uu]ser[Ss]ettings/
+**/[Mm]emoryCaptures/
+**/[Rr]ecordings/
+**/Builds/
+*.csproj
+*.sln
+*.slnx
+*.user
+.DS_Store
+.env
+.env.*
+!*.meta
+__pycache__/
